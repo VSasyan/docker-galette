@@ -1,0 +1,52 @@
+FROM ubuntu:16.04
+MAINTAINER Valentin Sasyan <valentin.sasyan@ign.fr>
+
+# Proxy for apt
+#RUN \
+#	echo 'Acquire::http::Proxy "http://proxy.truc.fr:3128";' >> /etc/apt/apt.conf.d/proxy & \
+#	echo 'Acquire::https::Proxy "https://proxy.truc.fr:3128";' >> /etc/apt/apt.conf.d/proxy
+
+# Proxy for wget
+# in .bashrc
+#RUN \
+#	echo 'export http_proxy="http://proxy.truc.fr:3128"' >> /root/.bashrc & \
+#	echo 'export https_proxy="http://proxy.truc.fr:3128"' >> /root/.bashrc & \
+#	echo 'export HTTP_PROXY=$http_proxy' >> /root/.bashrc & \
+"	echo 'export HTTPS_PROXY=$https_proxy' >> /root/.bashrc
+# in dockerfile
+#ENV http_proxy=http://proxy.truc.fr:3128
+#ENV https_proxy=http://proxy.truc.fr:3128
+#ENV HTTP_PROXY=http://proxy.truc.fr:3128
+#ENV HTTPS_PROXY=http://proxy.truc.fr:3128
+
+# Install needed programs
+RUN apt update
+RUN apt install wget bzip2 apache2 libapache2-mod-php php php-mysql php-gd php-curl curl libcurl3 libcurl3-dev php-tidy php-gettext php-mbstring -y
+
+#Create directory for apache2 lock file and run directory
+RUN mkdir -p /var/lock/apache2 /var/run/apache2
+
+#Set required environment variables
+ENV APACHE_RUN_USER www-data
+ENV APACHE_RUN_GROUP www-data
+ENV APACHE_PID_FILE /var/run/apache2.pid
+ENV APACHE_RUN_DIR /var/run/apache2
+ENV APACHE_LOCK_DIR /var/lock/apache2
+ENV APACHE_LOG_DIR /var/log/apache2
+ENV LANG C
+
+# Download Galette
+WORKDIR /var/www/html/
+RUN wget http://download.tuxfamily.org/galette/galette-0.8.3.4.tar.bz2
+RUN tar -xjvf galette-0.8.3.4.tar.bz2
+RUN mv ./galette-0.8.3.4/galette/ ./galette
+
+# Rights
+WORKDIR /var/www/html/galette
+RUN chown -R www-data:www-data config data
+
+# Entrypoint to run server
+ENTRYPOINT ["/bin/sh", "-c"]
+
+# Restart apache2
+CMD ["service apache2 restart && while true; do sleep 42000; done"]
